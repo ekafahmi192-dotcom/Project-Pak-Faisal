@@ -1,0 +1,47 @@
+!pip install pandas textblob matplotlib nltk
+
+import pandas as pd
+import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from textblob import TextBlob
+import matplotlib.pyplot as plt
+
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('punkt_tab')
+
+df = pd.read_csv("komentar_youtube.csv")
+print(df.head)
+
+def clean_text(text):
+    text = str(text).lower()
+    text = re.sub(r"http\S+|www\S+|https\S+", '', text)
+    text = re.sub(r"[^a-z\s]", '', text)
+    tokens = word_tokenize(text)
+    tokens = [word for word in tokens if word not in stopwords.words('english')]
+    return ' '.join(tokens)
+
+df['clean_comment'] = df['comment'].apply(clean_text)
+
+
+def sentiment(text):
+    polarity = TextBlob(text).sentiment.polarity
+    if polarity > 0:
+        return "Positive"
+    elif polarity < 0:
+        return "Negative"
+    else:
+        return "Neutral"
+
+df['sentiment'] = df['clean_comment'].apply(sentiment)
+
+print(df.head())
+print(df['sentiment'].value_counts())
+
+df['sentiment'].value_counts().plot(kind='bar', color=['green','red','gray'])
+plt.title("Distribusi Sentimen Komentar")
+plt.xlabel("Sentimen")
+plt.ylabel("Jumlah Komentar")
+plt.show()
