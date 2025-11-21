@@ -1,0 +1,54 @@
+import requests
+import csv
+
+API_KEY = 'AIzaSyBGejD52umVgnTYhtadb72LSgUdwZxYqFM'
+VIDEO_ID = 'PFLlrhwf4GQ'
+def get_comments(video_id, api_key):
+    comments = []
+    next_page_token = None
+
+    while True:
+        url = 'https://www.googleapis.com/youtube/v3/commentThreads'
+        params = {
+            'part': 'snippet',
+            'videoId': video_id,
+            'key': api_key,
+            'textFormat': 'plainText',
+            'maxResults': 100,
+            'pageToken': next_page_token
+        }
+
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            print("Gagal mengambil data:", response.text)
+            break
+
+        data = response.json()
+
+        for item in data.get('items', []):
+            snippet = item['snippet']['topLevelComment']['snippet']
+            comment = {
+                'author': snippet['authorDisplayName'],
+                'comment': snippet['textDisplay'],
+                'publishedAt': snippet['publishedAt'],
+                'likeCount': snippet['likeCount']
+            }
+            comments.append(comment)
+
+        next_page_token = data.get('nextPageToken')
+        if not next_page_token:
+            break
+
+    return comments
+
+def save_to_csv(comments, filename):
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['author', 'comment', 'publishedAt', 'likeCount'])
+        writer.writeheader()
+        for comment in comments:
+            writer.writerow(comment)
+
+if __name__ == '__main__':
+    comments = get_comments(VIDEO_ID, API_KEY)
+    save_to_csv(comments, 'komentar_youtube.csv')
+    print(f"Berhasil menyimpan {len(comments)} komentar ke 'komentar_youtube.csv'")
